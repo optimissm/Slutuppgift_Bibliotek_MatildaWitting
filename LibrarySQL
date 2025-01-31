@@ -1,0 +1,88 @@
+CREATE DATABASE Library;
+
+USE Library;
+
+CREATE TABLE IF NOT EXISTS LibraryCard (
+	id BIGINT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+	name VARCHAR(100) NOT NULL,
+	username VARCHAR(100) NOT NULL,
+	email VARCHAR(100) NOT NULL UNIQUE,
+	password VARCHAR(20) NOT NULL
+);
+
+
+DROP TABLE IF EXISTS  LibraryCard;
+DROP TABLE IF EXISTS Shelf;
+
+CREATE TABLE IF NOT EXISTS Shelf (
+	id BIGINT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+	title VARCHAR(250) NOT NULL,
+	author VARCHAR(100) NOT NULL,
+	typeOfMedia ENUM('Book', 'Magazine', 'Movie') NOT NULL DEFAULT 'Book',
+	isBorrowed BOOLEAN NOT NULL DEFAULT FALSE,
+	borrowedBy BIGINT , 
+	borrowedUntil DATE,
+	FOREIGN KEY (borrowedBy) REFERENCES LibraryCard(id)
+	);
+
+CREATE TABLE IF NOT EXISTS BorrowHistory (
+	id BIGINT PRIMARY KEY NOT NULL AUTO_INCREMENT,
+	userId BIGINT NOT NULL,
+	bookId BIGINT NOT NULL,
+	borrowDate DATE NOT NULL,
+	returnDate DATE,
+	FOREIGN KEY (userId) REFERENCES LibraryCard(id),
+	FOREIGN KEY (bookId) REFERENCES Shelf(id)
+);
+
+
+INSERT INTO LibraryCard (name, username, email, password)
+	VALUES 
+	('test', 'test', 'test', '123');
+
+INSERT INTO LibraryCard SET
+	name = 'Elsbieta Ismini',
+	username = 'admin',
+	email = 'elsbieta.ismini@fulkoping.se',
+	password = 'bokmal';
+
+UPDATE LibraryCard SET 
+	username = mawi
+	WHERE id = 3;
+	
+DELETE FROM LibraryCard WHERE id = 3;
+
+INSERT INTO Shelf (title, author, typeOfMedia, isBorrowed)
+	VALUES 
+	('Nesferautu', 'Robert Eggers', 'Movie', false);
+
+INSERT INTO Shelf (title, author, typeOfMedia, isBorrowed)
+	VALUES 
+	('Harry Potter och de vises sten', 'JK Rowling', 'Book', false)
+	('Harry Potter och hemligheternas kammare', 'JK Rowling', 'Book', false),
+	('Harry Potter och fången från Azkaban', 'JK Rowling', 'Book', false),
+	('Harry Potter och den flammande bägaren', 'JK Rowling', 'Book', false),
+	('Harry Potter och fenixordern', 'JK Rowling', 'Book', false),
+	('Harry Potter och halvblodsprinsen', 'JK Rowling', 'Book', false),
+	('Harry Potter och dödsrelikerna', 'JK Rowling', 'Book', false);
+	
+UPDATE Shelf SET 
+	title = 'Nosferatu'
+	WHERE id = 13;
+
+SHOW TABLES;
+
+-- LibraryCard
+DESCRIBE LibraryCard;
+SELECT * FROM LibraryCard;
+DELETE FROM LibraryCard WHERE id = 1;
+
+-- Shelf
+DESCRIBE Shelf;
+SELECT * FROM Shelf;
+
+-- BorrowHistory
+DESCRIBE BorrowHistory;
+SELECT * FROM BorrowHistory; 
+
+
