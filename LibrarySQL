@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS LibraryCard (
 	password VARCHAR(20) NOT NULL
 );
 
-
 DROP TABLE IF EXISTS  LibraryCard;
 DROP TABLE IF EXISTS Shelf;
 
@@ -34,7 +33,6 @@ CREATE TABLE IF NOT EXISTS BorrowHistory (
 	FOREIGN KEY (userId) REFERENCES LibraryCard(id),
 	FOREIGN KEY (bookId) REFERENCES Shelf(id)
 );
-
 
 INSERT INTO LibraryCard (name, username, email, password)
 	VALUES 
@@ -75,11 +73,14 @@ SHOW TABLES;
 -- LibraryCard
 DESCRIBE LibraryCard;
 SELECT * FROM LibraryCard;
-DELETE FROM LibraryCard WHERE id = 1;
+-- En metod för att ta bort användare genom att byta ut "?" mot det id på personen du önsmkar ta bort
+DELETE FROM LibraryCard WHERE id = ?;
 
 -- Shelf
 DESCRIBE Shelf;
 SELECT * FROM Shelf;
+-- Samma som delete funktionen i LibraryCard (fast du tar bort en bok/film/tidning)
+DELETE FROM Shelf WHERE id = ?;
 
 -- BorrowHistory
 DESCRIBE BorrowHistory;
