@@ -7,9 +7,9 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+
 // detta är då klassen för all media
 public class Shelf {
-
     // so basically ska jag typ ish kopiera det jag gjorde i LibraryCard
     protected int id = -1;
     protected String title = "";
@@ -22,6 +22,9 @@ public class Shelf {
     public Shelf(){}
 
     // konstruktor för att söka efter objekt med id
+    // (Vilket jag undrar om det behövs...?)
+    // ev förbättring här skulle kunna vara att lägga till ett
+    // "Inga resultat med det ID:t"
     public Shelf(int id) throws SQLException {
         String sql = "SELECT * FROM shelf WHERE id = ?";
         PreparedStatement pst = LibraryDB.getConnection().prepareStatement(sql);
@@ -43,7 +46,8 @@ public class Shelf {
 
 
 
-    // efter titel
+    // sök efter titel
+    // Förbättra ev att returnera alla titlar med samma namn inte bara en
     public Shelf (String title) throws SQLException {
         String sql = "SELECT * FROM Shelf WHERE title = ? ";
         PreparedStatement pst = LibraryDB.getConnection().prepareStatement(sql);
@@ -77,29 +81,64 @@ public class Shelf {
     // efter författare
     // och om författare har mer än ett resultat
     // den körs bara om den författare du sökt på finns
-    public Shelf (boolean isAuthor, String author) throws SQLException {
-        if(!isAuthor) return;
+//    public Shelf (boolean isAuthor, String author) throws SQLException {
+//        if(!isAuthor) return;
+//
+//        // ta ut alla från Shelf där author är det du sökte på
+//        String sql = "SELECT * FROM Shelf WHERE author = ? ";
+//        PreparedStatement pst = LibraryDB.getConnection().prepareStatement(sql);
+//
+//        pst.setString(1, author);
+//
+//        init(pst);
+//
+//    }
+//    // denna hör till för att få ut media via författare
+//    // om författaren har skrivit mer än en bok tror jag...
+//    private void init(PreparedStatement pst) throws SQLException {
+//        ResultSet rs = pst.executeQuery();
+//
+//        // vi gör en lista av Shelf så att vi kan få mer än en titel
+//        // om författaren du söker på har mer än en bok i vårt bibliotek
+//        List<Shelf> mediaShelves = new ArrayList<Shelf>();
+//
+//        while (rs.next()) {
+//            Shelf shelfMedia = new Shelf();
+//
+//            shelfMedia.id = rs.getInt("id");
+//            shelfMedia.title = rs.getString("title");
+//            shelfMedia.author = rs.getString("author");
+//            shelfMedia.typeOfMedia = rs.getString("typeOfMedia");
+//            shelfMedia.isBorrowed = rs.getBoolean("isBorrowed");
+//            shelfMedia.borrowedBy = rs.getLong("borrowedBy");
+//            shelfMedia.borrowedUntil = rs.getDate("borrowedUntil");
+//
+//            mediaShelves.add(shelfMedia);
+//
+//        }
+//
+//        if (!mediaShelves.isEmpty()) {
+//            System.out.println("Titlar som matchar din sökning: ");
+//            for (Shelf shelf : mediaShelves) {
+//                System.out.println(shelf.title + ", " + shelf.author);
+//            }
+//        } else {
+//            System.out.println("Inga matchningar");
+//        }
+//
+//    }
 
-        // ta ut alla från Shelf där author är det du sökte på
-        String sql = "SELECT * FROM Shelf WHERE author = ? ";
+    // testar en ny för author ist för den över
+    public static List<Shelf> searchByAuthor(String author) throws SQLException {
+        String sql = "SELECT * FROM SHELF WHERE author = ? ";
         PreparedStatement pst = LibraryDB.getConnection().prepareStatement(sql);
-
         pst.setString(1, author);
 
-        init(pst);
-
-    }
-    // denna hör till för att få ut media via författare om författaren har skrivit mer än en bok tror jag...
-    private void init(PreparedStatement pst) throws SQLException {
         ResultSet rs = pst.executeQuery();
-
-        // vi gör en lista av Shelf så att vi kan få mer än en titel
-        // om författaren du söker på har mer än en bok i vårt bibliotek
-        List<Shelf> mediaShelves = new ArrayList<Shelf>();
+        List<Shelf> result = new ArrayList<>();
 
         while (rs.next()) {
             Shelf shelfMedia = new Shelf();
-
             shelfMedia.id = rs.getInt("id");
             shelfMedia.title = rs.getString("title");
             shelfMedia.author = rs.getString("author");
@@ -107,26 +146,16 @@ public class Shelf {
             shelfMedia.isBorrowed = rs.getBoolean("isBorrowed");
             shelfMedia.borrowedBy = rs.getLong("borrowedBy");
             shelfMedia.borrowedUntil = rs.getDate("borrowedUntil");
-
-            mediaShelves.add(shelfMedia);
-
+            result.add(shelfMedia);
         }
 
-        if (!mediaShelves.isEmpty()) {
-            System.out.println("Titlar som matchar din sökning: ");
-            for (Shelf shelf : mediaShelves) {
-                System.out.println(shelf.title + ", " + shelf.author);
-            }
-        } else {
-            System.out.println("Inga matchningar");
-        }
-
+        return result;
     }
 
 
 
-    // söka efter mediatyp och precis som med author så vill jag ha möjligheten
-    // att få ut mer än en titel åt gången
+    // söka efter mediatyp och precis som med author så vill jag
+    // ha möjligheten att få ut mer än en titel åt gången
     public static List<Shelf> getMediaType(String typeOfMedia) throws SQLException {
         String sql = "SELECT * FROM Shelf WHERE typeOfMedia = ?";
         PreparedStatement pst = LibraryDB.getConnection().prepareStatement(sql);
@@ -172,7 +201,7 @@ public class Shelf {
         // Osäker på hur jag behöver det här
         // då enda sättet att uppdatera ska vara via databasen...
         if (id > 0) {
-            sql = "UPDATE Shelf SET" + sql + " WHERE id = ?";
+            sql = "UPDATE Shelf SET " + sql + " WHERE id = ?";
 
         } else {
             // eller ett helt nytt objekt

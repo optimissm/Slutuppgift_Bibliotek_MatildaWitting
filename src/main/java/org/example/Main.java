@@ -7,7 +7,7 @@ import java.util.Scanner;
 
 import static org.example.LibraryDB.SQLExceptionPrint;
 
-// det är denna som ör komplett
+// det är denna som är komplett
 
 public class Main {
     public static void main(String[] args) {
@@ -20,8 +20,9 @@ public class Main {
 
         // kopplar in LibraryCard, Shelf och BorrowHistory
         LibraryCard card = new LibraryCard();
-        Shelf shelf = new Shelf();
-        BorrowHistory history = new BorrowHistory();
+        // fast dessa är inte aktiva...?
+        // Shelf shelf = new Shelf();
+        // BorrowHistory history = new BorrowHistory();
 
         // och startar en koppling till min databas som vi använder throughout
         Connection conn = LibraryDB.getConnection();
@@ -36,10 +37,10 @@ public class Main {
         int select = scan.nextInt();
         scan.nextLine();
 
+        // Skaffa bibliotekskort/skapa konto
         if (select == 1) {
             System.out.println("Jag vill skaffa ett bibliotekskort");
 
-            // skapa ett nytt kort
             System.out.println("Då behöver vi dina uppgifter.");
             System.out.println("Vad heter du? ");
             String name = scan.nextLine();
@@ -89,10 +90,8 @@ public class Main {
                 SQLExceptionPrint(e);
             }
 
-            // Här slutar skapa bibliotekskort
-
+        // Logga in
         } else if (select == 2) {
-            // så går vi vidare till att logga in
             System.out.println("Logga in");
 
             System.out.println("Ange ditt användarnamn: ");
@@ -102,6 +101,7 @@ public class Main {
             String password = scan.nextLine();
 
             // funktion för att spara den inloggade användaren
+            // så hen kan låna objekt senare
             loggedInId = login(user, password);
 
             // med det användarnamn och lösenord som du matat in
@@ -111,14 +111,14 @@ public class Main {
             if (loggedInId != -1) {
                 System.out.println("Välkommen in i vårt bibliotek!");
 
-                System.out.println("Här är alla titlar. ");
+                System.out.println("Här är alla tillgängliga titlar. ");
                 try {
                     Statement stmtShelf = conn.createStatement();
 
-                    // här kommer du in i biblioteket och får tå se all media
-                    // på en och samma gång
-                    // fast den visar inte all media... Bara Alex Petrovs bok...
-                    String queryShelf = "SELECT * FROM Shelf";
+                    // här kommer du in i biblioteket och får då se all tillgänglig
+                    // media på en och samma gång
+                    // (ÄNDRAT DENNA NYLIGEN => SE OM DEN FUNKAR)
+                    String queryShelf = "SELECT * FROM Shelf WHERE isBorrowed = false";
                     ResultSet resultShelf = stmtShelf.executeQuery(queryShelf);
 
                     while (resultShelf.next()) {
@@ -127,6 +127,7 @@ public class Main {
                         String title = resultShelf.getString("title");
                         String author = resultShelf.getString("author");
                         String typeOfMedia = resultShelf.getString("typeOfMedia");
+
                         boolean isBorrowed = resultShelf.getBoolean("isBorrowed");
 
                         // tänker att man inte behöver få ut info om vem som har boken atm
@@ -136,8 +137,11 @@ public class Main {
                         System.out.println(
                                 "Title: " + title +
                                         ", Author: " + author +
-                                        ", Type Of Media: " + typeOfMedia +
-                                        ", This is unavailable: " + isBorrowed);
+                                        ", Type Of Media: " + typeOfMedia
+                                        // denna såg inte snygg ut att ha med
+                                        // och nu är ändå litstan ändrad till "tillgängliga"
+                                        // + ", This is unavailable: " + isBorrowed
+                        );
                     }
                 }  catch (SQLException e) {
                     SQLExceptionPrint(e);
@@ -155,13 +159,13 @@ public class Main {
         System.out.println("Vad vill du göra nu? ");
         System.out.println("1. Låna böcker" +
                 "\n2. Lämna tillbaka böcker" +
-                "\n3. Upptadera profilinfo");
+                "\n3. Upptadera profilinfo" +
+                "\n4. Logga ut");
 
         int choice = scan.nextInt();
 
+        // Låna böcker
         if (choice == 1) {
-            // låna böcker
-
             // här är då hur man vill sortera media
             // för att hitta det du vill låna
             System.out.println("Vill du: ");
@@ -171,9 +175,8 @@ public class Main {
 
             int sort = scan.nextInt();
 
+            // Låna bok efter titel
             if (sort == 1) {
-                // Låna bok
-                // skriv in titel på boken och låna den
                 System.out.println("Vad är titeln på boken du letar efter? ");
                 // lägger in en extra scan.nextLine för att neutralisera scan.nextInt
                 scan.nextLine();
@@ -200,7 +203,7 @@ public class Main {
                             // vem som är inloggad så vi kan lägga boken på deras kort
                             // och vilken typ av media det är så vi vet hur länge den kan lånas
                             borrowMedia(loggedInId, shelfTitle.getId(), shelfTitle.getTypeOfMedia());
-                            System.out.println("Nu har du " + shelfTitle.getTitle() + "på ditt kort!");
+                            System.out.println("Nu har du lånat " + shelfTitle.getTitle() + " på ditt kort!");
 
                         }
                     }
@@ -211,9 +214,8 @@ public class Main {
 
                 // Här slutar sök efter titel
 
+            // Sök på författare
             } else if (sort == 2) {
-                // Sök på författare
-
                 // denna har jag lite problem med fortfarande...
                 // Men for now får vi nöja oss med att låna bok efter titel funkar...
 
@@ -222,7 +224,10 @@ public class Main {
                 scan.nextLine();
                 String findAuthor = scan.nextLine();
 
-                Shelf shelfAuthor = new Shelf(findAuthor);
+                // Shelf.getByAuthor(findAuthor);
+                // Shelf shelfAuthor = new Shelf(findAuthor);
+
+                // SELECT * FROM Shelf WHERE author = ?
 
                 System.out.println("Vill du låna en bok av denna författaren? (Ja/Nej)");
                 scan.nextLine();
@@ -258,10 +263,8 @@ public class Main {
                     return;
                 }
 
-
+            // Sortera efter media
             } else if (sort == 3) {
-                // sortera efter typ av media
-                // och nu är det väl som att kopiera via författare...?
                 System.out.println("Vill du söka efter böcker, filmer eller tidningar " +
                         "\n(Book/Movie/Magazine)");
 
@@ -336,11 +339,34 @@ public class Main {
 
             // Här slutar låna böcker
 
+        // Lämna tillbaka böcker
         } else if (choice == 2) {
-            // lämna tillbaka böcker
+            System.out.println("Vilken titel vill du lämna tillbaka?");
+            scan.nextLine();
 
+            String returnTitle = scan.nextLine();
+
+            try {
+                Shelf shelfToReturn = new Shelf(returnTitle);
+
+                if (!shelfToReturn.isBorrowed()) {
+                    System.out.println("Denna titel är inte utlånad");
+                } else if (shelfToReturn.getBorrowedBy() != loggedInId) {
+                    System.out.println("Du har inte lånat denna titel");
+                } else {
+                    returnMedia(loggedInId, shelfToReturn.getId(), shelfToReturn.getTypeOfMedia());
+                    System.out.println("Du har nu lämnat tillbaka: " + shelfToReturn.getTitle());
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+
+
+        // Uppdatera profil
         } else if (choice == 3) {
-            // Uppdatera profil
+
+        // Logga ut
+        } else if (choice == 4) {
 
         }
 
@@ -425,8 +451,9 @@ public class Main {
     private static void returnMedia (int userId, int mediaId, String mediaType) throws SQLException {
         Connection conn = LibraryDB.getConnection();
 
-        String check = "SELECT * FROM Shelf WHERE " +
-                "userId = ?, bookId = ?, returnDate IS NULL";
+        String check =
+                // "SELECT * FROM Shelf WHERE userId = ?, bookId = ?, returnDate IS NULL";
+                "SELECT * FROM Shelf WHERE borrowedBy = ? AND borrowedUntil IS NOT NULL";
 
         PreparedStatement pstReturn = conn.prepareStatement(check);
         pstReturn.setInt(1, userId);
@@ -435,11 +462,11 @@ public class Main {
         ResultSet rs = pstReturn.executeQuery();
 
         if (rs.next()) {
-            String updateShelef = "UPDATE Shelf SET" +
-                    "isBorrowed = ?, borrowedBy = NULL, borrowedUntil = NULL" +
+            String updateShelf = "UPDATE Shelf SET" +
+                    "isBorrowed = ?, borrowedBy = NULL, borrowedUntil = NULL " +
                     "WHERE id = ?";
 
-            PreparedStatement pstShelf = conn.prepareStatement(updateShelef);
+            PreparedStatement pstShelf = conn.prepareStatement(updateShelf);
             pstShelf.setBoolean(1, false);
             pstShelf.setInt(2, mediaId);
 
