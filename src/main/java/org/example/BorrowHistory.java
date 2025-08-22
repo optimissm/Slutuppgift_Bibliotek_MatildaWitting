@@ -3,7 +3,9 @@ package org.example;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 public class BorrowHistory {
 
@@ -21,8 +23,6 @@ public class BorrowHistory {
         pst.setInt(1, id);
 
         init(pst);
-
-
     }
 
     public BorrowHistory(int userId, int bookId) throws SQLException {
@@ -104,6 +104,38 @@ public class BorrowHistory {
         }
     }
 
+    // möjlighet att skriva ut en hel lista på alla lånade böcker
+    public static List<Shelf> getBorrowedByUser(int userId) throws SQLException {
+        // döper om Shelf till s och hämtar alla kolumner
+        String sql = "SELECT s.* FROM Shelf s " +
+                    // kopplar sedan BorrowHistory med Shelf
+                    // genom Shelf id och BorrowHistory bok id
+                    "JOIN BorrowHistory b ON s.id = b.bookId " +
+                    // så att vi sen kan hämta ut inloggade användarens
+                    // böcker där returnDate = null
+                    "WHERE b.userId = ? AND b.returnDate IS NULL";
+
+        PreparedStatement pst = LibraryDB.getConnection().prepareStatement(sql);
+        pst.setInt(1, userId);
+
+        ResultSet rs = pst.executeQuery();
+        List<Shelf> borrowedBooks = new ArrayList<>();
+
+        while (rs.next()) {
+            Shelf shelfMedia = new Shelf();
+            shelfMedia.id = rs.getInt("id");
+            shelfMedia.title = rs.getString("title");
+            shelfMedia.author = rs.getString("author");
+            shelfMedia.typeOfMedia = rs.getString("typeOfMedia");
+            shelfMedia.isBorrowed = rs.getBoolean("isBorrowed");
+            shelfMedia.borrowedBy = rs.getLong("borrowedBy");
+            shelfMedia.borrowedUntil = rs.getDate("borrowedUntil");
+
+            borrowedBooks.add(shelfMedia);
+        }
+
+        return borrowedBooks;
+    }
 
 
     // Setters och getters

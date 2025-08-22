@@ -7,8 +7,6 @@ import java.util.Scanner;
 
 import static org.example.LibraryDB.SQLExceptionPrint;
 
-// det är denna som är komplett
-
 public class Main {
     public static void main(String[] args) {
 
@@ -20,9 +18,6 @@ public class Main {
 
         // kopplar in LibraryCard, Shelf och BorrowHistory
         LibraryCard card = new LibraryCard();
-        // fast dessa är inte aktiva...?
-        // Shelf shelf = new Shelf();
-        // BorrowHistory history = new BorrowHistory();
 
         // och startar en koppling till min databas som vi använder throughout
         Connection conn = LibraryDB.getConnection();
@@ -219,48 +214,82 @@ public class Main {
                 // denna har jag lite problem med fortfarande...
                 // Men for now får vi nöja oss med att låna bok efter titel funkar...
 
-                System.out.println("Vad heter författaren du letar efter? ");
+                while(true) {
+                    System.out.println("Vad heter författaren du letar efter? ");
 
-                scan.nextLine();
-                String findAuthor = scan.nextLine();
+                    scan.nextLine();
+                    String findAuthor = scan.nextLine();
 
-                // Shelf.getByAuthor(findAuthor);
-                // Shelf shelfAuthor = new Shelf(findAuthor);
-
-                // SELECT * FROM Shelf WHERE author = ?
-
-                System.out.println("Vill du låna en bok av denna författaren? (Ja/Nej)");
-                scan.nextLine();
-                String YN = scan.nextLine();
-
-                if (YN.equalsIgnoreCase("Ja")) {
-                    System.out.println("Vad är titeln på objektet du vill låna? ");
-                    String auTitle = scan.nextLine();
-
+                    // här vill jag få ut listan med böcker från den författaren
                     try {
-                        Shelf shelfTitle = new Shelf(auTitle);
+                        Connection connAuth = LibraryDB.getConnection();
 
-                        // om den är utlånad
-                        if (shelfTitle.isBorrowed()) {
-                            System.out.println(shelfTitle.getTitle() + "Är tyvärr utlånad...");
-                        } else {
-                            System.out.println("Vill du låna denna? (Ja/Nej)");
-                            String loan = scan.nextLine();
+                        String sql = "SELECT * FROM Shelf WHERE author = ?";
+                        PreparedStatement stmt = connAuth.prepareStatement(sql);
+                        stmt.setString(1, findAuthor);
 
-                            if (loan.equalsIgnoreCase("Ja")) {
+                        ResultSet rs = stmt.executeQuery();
 
-                                borrowMedia(loggedInId, shelfTitle.getId(), shelfTitle.getTypeOfMedia());
-                                System.out.println("Nu har du " + shelfTitle.getTitle() + "på ditt kort!");
+                        boolean found = false;
+                        while (rs.next()) {
+                            found = true;
+                            String author = rs.getString("author");
+                            String title = rs.getString("title");
+                            String typeOfMedia = rs.getString("typeOfMedia");
+                            boolean isBorrowed = rs.getBoolean("isBorrowed");
 
-                            }
+                            System.out.println(
+                                    "Författare: " + author +
+                                            ", Titel: " + title +
+                                            ", Typ av media: " + typeOfMedia +
+                                            (isBorrowed ? " (Utlånad)" : " (Tillgänglig)")
+
+                            );
+                        }
+
+                        if (!found) {
+                            System.out.println("Vi har tyvärr inga titlar av " + findAuthor);
+                            continue;
                         }
 
                     } catch (SQLException e) {
-                        throw new RuntimeException(e);
+                        e.printStackTrace();
                     }
 
-                } else {
-                    return;
+
+                    System.out.println("Är det en av dessa böckerna du vill låna? (Ja/Nej)");
+                    scan.nextLine();
+                    String YN = scan.nextLine();
+
+                    if (YN.equalsIgnoreCase("Ja")) {
+                        System.out.println("Vad är titeln på objektet du vill låna? ");
+                        String auTitle = scan.nextLine();
+
+                        try {
+                            Shelf shelfTitle = new Shelf(auTitle);
+
+                            // om den är utlånad
+                            if (shelfTitle.isBorrowed()) {
+                                System.out.println(shelfTitle.getTitle() + "Är tyvärr utlånad...");
+                            } else {
+                                System.out.println("Vill du låna denna? (Ja/Nej)");
+                                String loan = scan.nextLine();
+
+                                if (loan.equalsIgnoreCase("Ja")) {
+
+                                    borrowMedia(loggedInId, shelfTitle.getId(), shelfTitle.getTypeOfMedia());
+                                    System.out.println("Nu har du " + shelfTitle.getTitle() + "på ditt kort!");
+
+                                }
+                            }
+
+                        } catch (SQLException e) {
+                            throw new RuntimeException(e);
+                        }
+
+                    } else {
+                        break;
+                    }
                 }
 
             // Sortera efter media
@@ -279,9 +308,13 @@ public class Main {
                         System.out.println("Du sökte på: " + mediaType);
 
                         for (Shelf shelfMedia : sortedShelf) {
-                            System.out.println("Titel: " + shelfMedia.title +
-                                    ", Författare: " + shelfMedia.author);
+                            System.out.println(
+                                    "Titel: " + shelfMedia.title +
+                                    ", Författare: " + shelfMedia.author +
+                                    (shelfMedia.isBorrowed ? " (Utlånad)" : " (Tillgänglig)")
+                            );
                         }
+
 
                         System.out.println("Hittade du någonting du är intresserad av att låna? (Ja/Nej) ");
                         scan.nextLine();
@@ -313,9 +346,6 @@ public class Main {
                             } catch (SQLException e) {
                                 throw new RuntimeException(e);
                             }
-
-
-
                         }
 
 
@@ -341,22 +371,62 @@ public class Main {
 
         // Lämna tillbaka böcker
         } else if (choice == 2) {
+            // skriva ut lista på de böcker jag har lånat
+            // förbereder listan och hämtar info från BorrowHistory
+            // från den som är inloggad
+            try {
+                List<Shelf> borrowed = BorrowHistory.getBorrowedByUser(loggedInId);
+//            } catch (SQLException e) {
+//                throw new RuntimeException(e);
+//            }
+
+            if (borrowed.isEmpty()) {
+                System.out.println("Du har inga lånade böcker att lämna tillbaka");
+
+                return;
+            }
+
+            System.out.println("Detta är alla dina lånade titlar: ");
+            for (Shelf s : borrowed) {
+                System.out.println("Titel: " + s.getTitle() +
+                                    ", Författare: " + s.getAuthor() +
+                                    ", Typ av media: " + s.getTypeOfMedia());
+            }
+
             System.out.println("Vilken titel vill du lämna tillbaka?");
             scan.nextLine();
 
             String returnTitle = scan.nextLine();
 
-            try {
-                Shelf shelfToReturn = new Shelf(returnTitle);
+            Shelf shelfToReturn = null;
+            for (Shelf s : borrowed) {
+                if (s.getTitle().equalsIgnoreCase(returnTitle)) {
+                    shelfToReturn = s;
 
-                if (!shelfToReturn.isBorrowed()) {
-                    System.out.println("Denna titel är inte utlånad");
-                } else if (shelfToReturn.getBorrowedBy() != loggedInId) {
-                    System.out.println("Du har inte lånat denna titel");
-                } else {
-                    returnMedia(loggedInId, shelfToReturn.getId(), shelfToReturn.getTypeOfMedia());
-                    System.out.println("Du har nu lämnat tillbaka: " + shelfToReturn.getTitle());
+                    break;
                 }
+            }
+
+            if (shelfToReturn == null) {
+                System.out.println("Du har inte lånat denna titel");
+                return;
+            }
+
+            returnMedia(loggedInId, shelfToReturn.getId(), shelfToReturn.getTypeOfMedia());
+                System.out.println("Tack för att du lämnade tillbaka " + shelfToReturn.getTitle());
+
+//            try {
+//                Shelf shelfToReturn = new Shelf(returnTitle);
+//                if (!shelfToReturn.isBorrowed()) {
+//                    System.out.println("Denna titel är inte utlånad");
+//                } else if (shelfToReturn.getBorrowedBy() != loggedInId) {
+//                    System.out.println("Du har inte lånat denna titel");
+//                } else {
+//                    returnMedia(loggedInId, shelfToReturn.getId(), shelfToReturn.getTypeOfMedia());
+//                    System.out.println("Du har nu lämnat tillbaka: " + shelfToReturn.getTitle());
+//                }
+
+
             } catch (SQLException e) {
                 e.printStackTrace();
             }
@@ -453,7 +523,9 @@ public class Main {
 
         String check =
                 // "SELECT * FROM Shelf WHERE userId = ?, bookId = ?, returnDate IS NULL";
-                "SELECT * FROM Shelf WHERE borrowedBy = ? AND borrowedUntil IS NOT NULL";
+                // "SELECT * FROM Shelf WHERE borrowedBy = ? AND borrowedUntil IS NOT NULL";
+
+                    "SELECT * FROM Shelf WHERE borrowedBy = ? AND id = ?";
 
         PreparedStatement pstReturn = conn.prepareStatement(check);
         pstReturn.setInt(1, userId);
@@ -462,18 +534,24 @@ public class Main {
         ResultSet rs = pstReturn.executeQuery();
 
         if (rs.next()) {
-            String updateShelf = "UPDATE Shelf SET" +
-                    "isBorrowed = ?, borrowedBy = NULL, borrowedUntil = NULL " +
+            String updateShelf = "UPDATE Shelf " +
+                    "SET isBorrowed = false, borrowedBy = NULL, borrowedUntil = NULL " +
                     "WHERE id = ?";
 
             PreparedStatement pstShelf = conn.prepareStatement(updateShelf);
-            pstShelf.setBoolean(1, false);
-            pstShelf.setInt(2, mediaId);
-
+            pstShelf.setInt(1, mediaId);
             pstShelf.executeUpdate();
 
-            // System.out.println("Tack för att du lämnade tillbaka " + Shelf.getTitle);
+            String updateHistory =  "UPDATE BorrowHistory " +
+                                    "SET returnDate = CURRENT_DATE " +
+                                    "WHERE id = ? AND bookId = ? AND returnDate IS NULL";
 
+            PreparedStatement pstHistory = conn.prepareStatement(updateHistory);
+            pstHistory.setInt(1, userId);
+            pstHistory.setInt(2, mediaId);
+            pstHistory.executeUpdate();
+
+            System.out.println("Tack för att du har lämnat tillbaka denna media, hoppas du var nöjd med ditt val.");
 
         } else {
             System.out.println("Du har inte lånat denna, så kan därför inte heller lämna tillbaka den. ");
